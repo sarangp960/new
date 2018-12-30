@@ -1,0 +1,76 @@
+empdata file in .csv format
+1,Durward,Male,17087,Sales
+2,Theo,Male,25597,Legal
+3,Fremont,Male,40367,Human Resources
+4,Layla,Female,20191,Human Resources
+5,Mirna,Female,20980,Training
+6,Quill,Male,28734,Business Development
+7,Weidar,Male,44265,Sales
+8,Koral,Female,27388,Marketing
+9,Phillida,Female,22288,Accounting
+10,Lona,Female,27329,Research and Developme
+
+id,name,gender,salary,department
+
+put that file in hdfs in /spark/empdata.csv
+
+val emp=sc.textFile("hdfs://localhost:9000/spark/empdata.csv")
+
+emp.collect
+
+or emp.collect.foreach(println)
+
+1)calculate addition of salary of female and male separtely
+val empspl=empdata.map(x=>x.split(","))
+empspl: org.apache.spark.rdd.RDD[Array[String]] = MapPartitionsRDD[34] at map at <console>:26
+
+scala> empspl.collect
+res34: Array[Array[String]] = Array(Array(1, Durward, Male, 17087, "Sales                 "), Array(2, Theo, Male, 25597, "Legal                    "), Array(3, Fremont, Male, 40367, "Human Resources       "), Array(4, Layla, Female, 20191, "Human Resources       "), Array(5, Mirna, Female, 20980, "Training              "), Array(6, Quill, Male, 28734, "Business Development    "), Array(7, Weidar, Male, 44265, "Sales                  "), Array(8, Koral, Female, 27388, "Marketing             "), Array(9, Phillida, Female, 22288, "Accounting         "), Array(10, Lona, Female, 27329, Research and Developme))
+
+val empspl1=empspl.map(x=>(x(2),x(3).toInt))
+empspl1: org.apache.spark.rdd.RDD[(String, Int)] = MapPartitionsRDD[37] at map at <console>:28
+
+scala> empspl1.collect
+res38: Array[(String, Int)] = Array((Male,17087), (Male,25597), (Male,40367), (Female,20191), (Female,20980), (Male,28734), (Male,44265), (Female,27388), (Female,22288), (Female,27329))
+
+scala> empspl1.reduceByKey(_+_)
+res39: org.apache.spark.rdd.RDD[(String, Int)] = ShuffledRDD[38] at reduceByKey at <console>:31
+
+scala> empspl1.reduceByKey(_+_).collect
+res40: Array[(String, Int)] = Array((Female,118176), (Male,156050))
+
+2)lowest salary with empname
+val empsal=empspl.map(x=>(x(1),x(3)))
+empsal: org.apache.spark.rdd.RDD[(String, String)] = MapPartitionsRDD[9] at map at <console>:28
+
+scala> empsal.collect
+res12: Array[(String, String)] = Array((Durward,17087), (Theo,25597), (Fremont,40367), (Layla,20191), (Mirna,20980), (Quill,28734), (Weidar,44265), (Koral,27388), (Phillida,22288), (Lona,27329))
+
+scala> empsal.min
+res13: (String, String) = (Durward,17087)
+
+3)highest salary with empname
+scala> empsal.max
+res14: (String, String) 
+= (Weidar,44265)
+
+4)count male and female
+val rdd1=emp.map(x=>(x.split(",")(2),x))
+rdd1: org.apache.spark.rdd.RDD[(String, String)] = MapPartitionsRDD[11] at map at <console>:
+gender is select as key other are values
+
+
+rdd1.collect
+res19: Array[(String, String)] = Array((Male,"1,Durward,Male,17087,Sales                 "), (Male,"2,Theo,Male,25597,Legal                    "), (Male,"3,Fremont,Male,40367,Human Resources       "), (Female,"4,Layla,Female,20191,Human Resources       "), (Female,"5,Mirna,Female,20980,Training              "), (Male,"6,Quill,Male,28734,Business Development    "), (Male,"7,Weidar,Male,44265,Sales                  "), (Female,"8,Koral,Female,27388,Marketing             "), (Female,"9,Phillida,Female,22288,Accounting         "), (Female,10,Lona,Female,27329,Research and Developme))
+
+ rdd1.countByKey
+val countno=rdd1.keys.filter(x=>x.equals("Female")))
+res6: scala.collection.Map[String,Long] = Map(Female -> 5, Male -> 5)
+
+
+5)split the rdd according to key and value pair(separate data of female and male into two different rdd)
+
+val F=rdd1.lookup("Female")
+
+val M=rdd1.lookup("Male")
+
